@@ -40,23 +40,29 @@ window.METEO_CONFIG = {
   /* ── Verre ────────────────────────────────────────────────── */
   .glass {
     position:relative; border-radius:30px; overflow:hidden;
-    background:linear-gradient(158deg, rgba(255,255,255,.17), rgba(255,255,255,.055) 46%, rgba(130,185,255,.075));
-    -webkit-backdrop-filter:blur(26px) saturate(1.55);
-    backdrop-filter:blur(26px) saturate(1.55);
-    border:1px solid rgba(255,255,255,.32);
-    box-shadow:0 26px 70px rgba(3,16,52,.42),
-               0 2px 10px  rgba(6,26,70,.25),
-               inset 0 1.5px 0 rgba(255,255,255,.55),
-               inset 0 -1px 2px rgba(160,205,255,.12);
+    background:
+      radial-gradient(135% 110% at 16% -18%, rgba(255,255,255,.40), rgba(255,255,255,.10) 46%, rgba(255,255,255,0) 60%),
+      linear-gradient(163deg, rgba(255,255,255,.20), rgba(255,255,255,.06) 46%, rgba(135,190,255,.12) 76%, rgba(255,255,255,.17));
+    -webkit-backdrop-filter:blur(30px) saturate(1.85) brightness(1.06);
+    backdrop-filter:blur(30px) saturate(1.85) brightness(1.06);
+    border:1px solid rgba(255,255,255,.52);
+    box-shadow:0 30px 80px rgba(3,16,52,.5),
+               0 2px 12px  rgba(6,26,70,.3),
+               0 0 0 1px rgba(120,180,255,.12),
+               inset 0 2px 1.5px rgba(255,255,255,.9),
+               inset 0 -1.5px 1px rgba(255,255,255,.28),
+               inset 0 -16px 34px rgba(120,195,255,.20),
+               inset 0 30px 50px -22px rgba(255,255,255,.5);
   }
-  .glass::before { /* reflet supérieur */
-    content:""; position:absolute; left:0; right:0; top:0; height:52%;
-    background:linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.02));
-    border-radius:inherit; pointer-events:none;
+  .glass::before { /* vitre supérieure : reflet net à bord courbe (signature Aero) */
+    content:""; position:absolute; left:10px; right:10px; top:5px; height:47%;
+    background:linear-gradient(rgba(255,255,255,.50), rgba(255,255,255,.20) 68%, rgba(255,255,255,.09));
+    border-radius:24px 24px 320px 320px / 24px 24px 70px 70px;
+    pointer-events:none;
   }
   .glass::after { /* balayage lumineux à l'entrée */
     content:""; position:absolute; top:-20%; bottom:-20%; width:34%; left:0;
-    background:linear-gradient(105deg, transparent, rgba(255,255,255,.34) 48%, rgba(255,255,255,.1) 60%, transparent);
+    background:linear-gradient(105deg, transparent, rgba(255,255,255,.5) 48%, rgba(255,255,255,.14) 60%, transparent);
     transform:translateX(-320%) skewX(-14deg); pointer-events:none;
   }
   .view.active .glass::after { animation:sheen 1.7s .45s cubic-bezier(.3,.4,.2,1) both; }
@@ -132,9 +138,9 @@ window.METEO_CONFIG = {
   #hero-chips { display:flex; gap:18px; margin-top:34px; }
   .chip {
     display:flex; align-items:center; gap:12px; padding:12px 26px; border-radius:999px;
-    background:linear-gradient(rgba(255,255,255,.22), rgba(255,255,255,.08));
-    border:1px solid rgba(255,255,255,.35);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 6px 18px rgba(4,20,60,.22);
+    background:linear-gradient(rgba(255,255,255,.46), rgba(255,255,255,.12) 55%, rgba(150,200,255,.22));
+    border:1px solid rgba(255,255,255,.55);
+    box-shadow:inset 0 1.5px 1px rgba(255,255,255,.85), inset 0 -6px 12px rgba(120,190,255,.25), 0 8px 20px rgba(4,20,60,.28);
     font-size:24px; font-weight:400;
     -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
   }
@@ -908,50 +914,10 @@ const gfx = (() => {
   });
   bgScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2), bgMat));
 
-  /* — Scène 3D : bulles + précipitations — */
+  /* — Scène 3D : précipitations — */
   const scene = new THREE.Scene();
   const cam = new THREE.PerspectiveCamera(45, 16/9, .1, 100);
   cam.position.set(0,0,16);
-
-  // Bulles de savon (fresnel + reflets)
-  const bubbleGeo = new THREE.SphereGeometry(1, 40, 28);
-  const bubbleMat = new THREE.ShaderMaterial({
-    transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
-    uniforms:{ uGlow:{value:1} },
-    vertexShader:`
-      varying vec3 vN, vV, vP;
-      void main(){
-        vec4 wp = modelMatrix * vec4(position,1.);
-        vN = normalize(mat3(modelMatrix)*normal);
-        vV = normalize(cameraPosition - wp.xyz);
-        vP = position;
-        gl_Position = projectionMatrix * viewMatrix * wp;
-      }`,
-    fragmentShader:`
-      varying vec3 vN, vV, vP;
-      uniform float uGlow;
-      void main(){
-        vec3 n = normalize(vN), v = normalize(vV);
-        float fr = pow(1. - abs(dot(n,v)), 2.6);
-        // irisation fine sur le bord
-        vec3 iri = vec3(.55+.45*sin(fr*14.), .55+.45*sin(fr*14.+2.1), .55+.45*sin(fr*14.+4.2));
-        vec3 col = mix(vec3(.75,.88,1.), iri, .45) * fr;
-        // deux reflets spéculaires fixes
-        float s1 = pow(max(dot(n, normalize(vec3(.5,.8,.6))), 0.), 90.);
-        float s2 = pow(max(dot(n, normalize(vec3(-.6,-.3,.7))), 0.), 130.);
-        col += vec3(1.) * (s1*.9 + s2*.4);
-        gl_FragColor = vec4(col * uGlow, (fr*.6 + s1*.5 + s2*.3) * uGlow);
-      }`,
-  });
-  const bubbles = [];
-  for (let i=0;i<26;i++){
-    const m = new THREE.Mesh(bubbleGeo, bubbleMat);
-    const r = .18 + Math.pow(Math.random(),1.6)*1.35;
-    m.scale.setScalar(r);
-    m.position.set((Math.random()*2-1)*15, (Math.random()*2-1)*8.5, -5 + Math.random()*9);
-    m.userData = { v:.12+Math.random()*.4, ph:Math.random()*Math.PI*2, sw:.3+Math.random()*.8, r };
-    bubbles.push(m); scene.add(m);
-  }
 
   // Précipitations (pluie / neige)
   const P = 900;
@@ -998,7 +964,7 @@ const gfx = (() => {
   /* — Cibles visuelles (adoucies image par image) — */
   const target = {
     top:new THREE.Color(0x0a2f78), mid:new THREE.Color(0x2377d0), bot:new THREE.Color(0x8fd4ec),
-    cloud:0, fog:0, precip:0, mode:1, wind:0, storm:false, bubGlow:1,
+    cloud:0, fog:0, precip:0, mode:1, wind:0, storm:false,
   };
 
   const PALETTES = {
@@ -1024,7 +990,6 @@ const gfx = (() => {
     target.mode = cls==="snow" ? 0 : 1;
     target.wind = clamp((c.wind||0)/50, 0, 1) * (c.windD>180?-1:1);
     target.storm = cls==="storm";
-    target.bubGlow = rainy||cls==="snow" ? .45 : 1;
   }
 
   /* Position du soleil/lune + facteur jour, recalculés en continu */
@@ -1087,15 +1052,6 @@ const gfx = (() => {
     }
     uniforms.uFlash.value *= Math.pow(.0015, dt);
     if (uniforms.uFlash.value < .003) uniforms.uFlash.value = 0;
-
-    // bulles
-    bubbleMat.uniforms.uGlow.value = lerp(bubbleMat.uniforms.uGlow.value, target.bubGlow, k);
-    for (const b of bubbles){
-      const u = b.userData;
-      b.position.y += u.v*dt;
-      b.position.x += Math.sin(t*.4 + u.ph)*u.sw*dt*.4;
-      if (b.position.y > 9.5+u.r){ b.position.y = -9.5-u.r; b.position.x = (Math.random()*2-1)*15; }
-    }
 
     // précipitations
     pUniforms.uTime.value = t;
