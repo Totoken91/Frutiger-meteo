@@ -40,25 +40,13 @@ window.METEO_CONFIG = {
   /* ── Verre ────────────────────────────────────────────────── */
   .glass {
     position:relative; border-radius:28px; overflow:hidden;
-    background:linear-gradient(172deg, rgba(255,255,255,.20), rgba(255,255,255,.10) 55%, rgba(255,255,255,.13));
-    -webkit-backdrop-filter:blur(28px) saturate(1.4);
-    backdrop-filter:blur(28px) saturate(1.4);
-    border:1px solid rgba(255,255,255,.38);
-    box-shadow:0 18px 50px rgba(15,45,110,.22),
-               inset 0 1px 0 rgba(255,255,255,.45);
+    background:rgba(255,255,255,.13);
+    -webkit-backdrop-filter:blur(26px) saturate(1.25);
+    backdrop-filter:blur(26px) saturate(1.25);
+    border:1px solid rgba(255,255,255,.30);
+    box-shadow:0 14px 44px rgba(15,45,110,.16),
+               inset 0 1px 0 rgba(255,255,255,.32);
   }
-  .glass::before { /* voile lumineux discret en partie haute */
-    content:""; position:absolute; left:0; right:0; top:0; height:42%;
-    background:linear-gradient(rgba(255,255,255,.13), rgba(255,255,255,0));
-    border-radius:inherit; pointer-events:none;
-  }
-  .glass::after { /* balayage lumineux à l'entrée */
-    content:""; position:absolute; top:-20%; bottom:-20%; width:34%; left:0;
-    background:linear-gradient(105deg, transparent, rgba(255,255,255,.24) 48%, rgba(255,255,255,.08) 60%, transparent);
-    transform:translateX(-320%) skewX(-14deg); pointer-events:none;
-  }
-  .view.active .glass::after { animation:sheen 1.7s .45s cubic-bezier(.3,.4,.2,1) both; }
-  @keyframes sheen { from{transform:translateX(-320%) skewX(-14deg)} to{transform:translateX(560%) skewX(-14deg)} }
 
   .float  { animation:floaty 9s  ease-in-out infinite alternate; }
   .float2 { animation:floaty 12s ease-in-out infinite alternate-reverse; }
@@ -130,9 +118,9 @@ window.METEO_CONFIG = {
   #hero-chips { display:flex; gap:18px; margin-top:34px; }
   .chip {
     display:flex; align-items:center; gap:12px; padding:12px 26px; border-radius:999px;
-    background:linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.14));
-    border:1px solid rgba(255,255,255,.42);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 6px 16px rgba(15,45,110,.16);
+    background:rgba(255,255,255,.16);
+    border:1px solid rgba(255,255,255,.30);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.30), 0 4px 14px rgba(15,45,110,.10);
     font-size:24px; font-weight:400;
     -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
   }
@@ -150,8 +138,8 @@ window.METEO_CONFIG = {
   .gauge { margin-top:16px; height:10px; border-radius:5px; background:rgba(25,60,120,.22); overflow:hidden;
            box-shadow:inset 0 1px 2px rgba(10,30,80,.3); }
   .gauge i { display:block; height:100%; border-radius:5px;
-             background:linear-gradient(90deg,#9fe0ff,#4facfe 55%,#e8f7ff);
-             box-shadow:0 0 12px rgba(120,200,255,.8); }
+             background:linear-gradient(90deg,#bfe4ff,#7cc0f4);
+             box-shadow:0 0 8px rgba(140,200,255,.4); }
 
   /* ── Vue Horaire ──────────────────────────────────────────── */
   #hourly-panel { height:600px; margin-top:6px; padding:42px 30px 24px; }
@@ -176,7 +164,7 @@ window.METEO_CONFIG = {
   .w-track { position:relative; height:12px; border-radius:6px; background:rgba(25,60,120,.22);
              box-shadow:inset 0 1px 2px rgba(10,30,80,.3); }
   .w-seg { position:absolute; top:0; bottom:0; border-radius:6px;
-           box-shadow:0 0 14px rgba(160,215,255,.55), inset 0 1px 0 rgba(255,255,255,.5); }
+           box-shadow:0 0 8px rgba(160,215,255,.3), inset 0 1px 0 rgba(255,255,255,.35); }
 
   /* ── Vue Soleil ───────────────────────────────────────────── */
   #sun-panel { height:600px; margin-top:6px; padding:40px 70px 30px; display:flex; flex-direction:column; }
@@ -197,8 +185,8 @@ window.METEO_CONFIG = {
     transition:all .6s cubic-bezier(.16,1,.3,1);
   }
   .dot.on {
-    width:38px; background:linear-gradient(rgba(255,255,255,.95), rgba(200,230,255,.8));
-    box-shadow:0 0 16px rgba(190,225,255,.9), inset 0 1px 1px #fff;
+    width:38px; background:rgba(255,255,255,.85);
+    box-shadow:0 0 10px rgba(190,225,255,.5), inset 0 1px 1px #fff;
   }
   #demo-badge {
     width:340px; text-align:right; font-size:16px; letter-spacing:.3em; font-weight:600;
@@ -832,12 +820,10 @@ const gfx = (() => {
   const bgScene = new THREE.Scene();
   const bgCam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   const uniforms = {
-    uTime:{value:0}, uAspect:{value:16/9},
+    uTime:{value:0},
     uColTop:{value:new THREE.Color(0x2f6fc4)},
     uColMid:{value:new THREE.Color(0x4f93d8)},
     uColBot:{value:new THREE.Color(0x8ec1ea)},
-    uCel:{value:new THREE.Vector2(.5,.75)},
-    uSunI:{value:0}, uMoonI:{value:0},
     uWarm:{value:0}, uDay:{value:1},
     uCloud:{value:0}, uFog:{value:0}, uFlash:{value:0},
   };
@@ -847,8 +833,8 @@ const gfx = (() => {
     fragmentShader:`
       precision highp float;
       varying vec2 vUv;
-      uniform float uTime,uAspect,uSunI,uMoonI,uWarm,uDay,uCloud,uFog,uFlash;
-      uniform vec2 uCel; uniform vec3 uColTop,uColMid,uColBot;
+      uniform float uTime,uWarm,uDay,uCloud,uFog,uFlash;
+      uniform vec3 uColTop,uColMid,uColBot;
       float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453123); }
       float noise(vec2 p){
         vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
@@ -860,45 +846,26 @@ const gfx = (() => {
         for(int i=0;i<4;i++){ v+=a*noise(p); p=p*2.03+vec2(13.7,7.1); a*=.5; }
         return v;
       }
-      float band(vec2 uv, float y0, float sp, float fr, float t){
-        float yy = uv.y - y0 - .11*sin(uv.x*fr + t*sp) - .1*(fbm(vec2(uv.x*2.1 + t*.026, y0*7.))-.5);
-        return exp(-yy*yy*150.);
-      }
       void main(){
         vec2 uv = vUv;
         float t = uTime;
-        // dégradé de fond, ondulé par du bruit lent
-        float w = fbm(vec2(uv.x*2.1, uv.y*1.5) + t*.013);
-        float g = clamp(uv.y + (w-.5)*.12, 0., 1.);
-        vec3 col = mix(uColBot, uColMid, smoothstep(0., .52, g));
-        col = mix(col, uColTop, smoothstep(.42, 1., g));
-        // rubans lumineux (aurora très douce)
-        float night = 1.-uDay;
-        col += mix(vec3(.22,.85,.78), vec3(.36,.48,1.0), night) * band(uv,.64,.10,3.1,t) * (.028+.05*night);
-        col += mix(vec3(.5,.8,1.),   vec3(.52,.34,.95), night) * band(uv,.34,.075,2.2,t) * (.022+.04*night);
-        col += vec3(.85,.95,1.) * band(uv,.5,.06,1.6,t+40.) * .018;
-        // halo soleil / lune
-        vec2 p = vec2(uv.x*uAspect, uv.y);
-        vec2 s = vec2(uCel.x*uAspect, uCel.y);
-        float d = distance(p,s);
-        vec3 warmCol = mix(vec3(1.,.985,.92), vec3(1.,.66,.32), uWarm);
-        col += warmCol * uSunI * (exp(-d*d*20.)*.65 + exp(-d*3.2)*.20);
-        // rayons discrets autour du soleil
-        float angl = atan(p.y-s.y, p.x-s.x);
-        col += warmCol * uSunI * max(0., sin(angl*9. + t*.12)) * exp(-d*2.4) * .028;
-        col += vec3(.72,.83,1.) * uMoonI * (exp(-d*d*55.)*.55 + exp(-d*4.5)*.15);
-        // lueur chaude d'horizon (aube/crépuscule)
-        col = mix(col, vec3(1.,.58,.3), uWarm * .26 * exp(-abs(uv.y-.16)*5.5));
-        // couche de nuages
-        float cl = fbm(uv*vec2(3.,2.1) + vec2(t*.011, 0.));
-        float cl2 = fbm(uv*vec2(5.,3.6) + vec2(t*.019, 3.7));
-        float cm = smoothstep(.62-uCloud*.34, .9, cl*.72+cl2*.38) * uCloud;
-        vec3 cc = mix(vec3(.13,.17,.27), vec3(.86,.9,.97), clamp(uDay,.12,1.));
-        col = mix(col, cc, cm*.82);
+        // dégradé pur, très légèrement vivant
+        float w = fbm(vec2(uv.x*1.6, uv.y*1.2) + t*.007);
+        float g = clamp(uv.y + (w-.5)*.05, 0., 1.);
+        vec3 col = mix(uColBot, uColMid, smoothstep(0., .55, g));
+        col = mix(col, uColTop, smoothstep(.45, 1., g));
+        // lueur chaude d'horizon (aube/crépuscule uniquement)
+        col = mix(col, vec3(1.,.62,.34), uWarm * .14 * exp(-abs(uv.y-.16)*5.5));
+        // couche de nuages très douce
+        float cl = fbm(uv*vec2(2.2,1.6) + vec2(t*.008, 0.));
+        float cl2 = fbm(uv*vec2(3.8,2.8) + vec2(t*.013, 3.7));
+        float cm = smoothstep(.6-uCloud*.3, 1.05, cl*.7+cl2*.4) * uCloud;
+        vec3 cc = mix(vec3(.16,.2,.3), vec3(.9,.93,.97), clamp(uDay,.15,1.));
+        col = mix(col, cc, cm*.45);
         // brouillard
-        col = mix(col, vec3(.74,.8,.9)*mix(.3,1.,uDay), uFog*.62*(1.-uv.y*.5));
-        // vignettage + éclair d'orage + dither
-        col *= 1. - .16*length(uv-vec2(.5,.46));
+        col = mix(col, vec3(.76,.82,.9)*mix(.35,1.,uDay), uFog*.5*(1.-uv.y*.5));
+        // vignettage très léger + éclair d'orage + dither
+        col *= 1. - .07*length(uv-vec2(.5,.46));
         col += vec3(1.,.98,.9)*uFlash;
         col += (hash(uv*vec2(1920.,1080.) + fract(t))-.5)*.012;
         gl_FragColor = vec4(col, 1.);
@@ -984,22 +951,14 @@ const gfx = (() => {
     target.storm = cls==="storm";
   }
 
-  /* Position du soleil/lune + facteur jour, recalculés en continu */
+  /* Facteur jour/nuit + chaleur d'aube et de crépuscule */
   function celestial(now){
     const sr = state.sunrise ? +state.sunrise : +new Date().setHours(7,0,0,0);
     const ss = state.sunset  ? +state.sunset  : +new Date().setHours(21,0,0,0);
-    const srN = state.sunriseNext ? +state.sunriseNext : sr + 864e5;
     const tw = 40*60000;
     const day = clamp((now-(sr-tw))/(2*tw),0,1) * (1-clamp((now-(ss-tw))/(2*tw),0,1));
     const warm = Math.exp(-Math.pow((now-sr)/(55*6e4),2)) + Math.exp(-Math.pow((now-ss)/(55*6e4),2));
-    let f, isDay = now>=sr && now<=ss;
-    if (isDay) f = (now-sr)/(ss-sr);
-    else if (now>ss) f = (now-ss)/(srN-ss);
-    else f = 1 - (sr-now)/(864e5-(ss-sr)); // avant l'aube
-    f = clamp(f,0,1);
-    const x = lerp(.12,.88,f);
-    const y = .16 + Math.sin(Math.PI*f) * (isDay ? .62 : .5);
-    return { x, y, day, warm:clamp(warm,0,1), isDay };
+    return { day, warm:clamp(warm,0,1) };
   }
 
   let hueT = 0, flashTimer = 3;
@@ -1028,10 +987,6 @@ const gfx = (() => {
     easeCol(uniforms.uColMid, mixCol(1), k);
     easeCol(uniforms.uColBot, mixCol(2), k);
 
-    uniforms.uCel.value.set(cel.x, cel.y);
-    const clearness = 1 - (target.cloud*.75);
-    uniforms.uSunI.value  = lerp(uniforms.uSunI.value,  cel.isDay ? clearness*(.55+.45*cel.day) : 0, k);
-    uniforms.uMoonI.value = lerp(uniforms.uMoonI.value, !cel.isDay ? clearness*.8 : 0, k);
     uniforms.uWarm.value  = lerp(uniforms.uWarm.value, cel.warm, k);
     uniforms.uDay.value   = cur.day;
     uniforms.uCloud.value = lerp(uniforms.uCloud.value, target.cloud, k*.6);
@@ -1065,7 +1020,6 @@ const gfx = (() => {
     renderer.setSize(innerWidth, innerHeight);
     cam.aspect = innerWidth/innerHeight;
     cam.updateProjectionMatrix();
-    uniforms.uAspect.value = innerWidth/innerHeight;
   }
 
   return { start(){ resize(); frame(); }, resize, applyWeather };
