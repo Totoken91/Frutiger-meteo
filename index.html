@@ -34,35 +34,27 @@ window.METEO_CONFIG = {
   #stage {
     position:fixed; left:50%; top:50%; width:1920px; height:1080px;
     transform:translate(calc(-50% + var(--ox,0px)), calc(-50% + var(--oy,0px))) scale(var(--s,1));
-    text-shadow:0 2px 14px rgba(2,24,66,.4);
+    text-shadow:0 1px 10px rgba(10,35,80,.28);
   }
 
   /* ── Verre ────────────────────────────────────────────────── */
   .glass {
-    position:relative; border-radius:30px; overflow:hidden;
-    background:
-      radial-gradient(135% 110% at 16% -18%, rgba(255,255,255,.40), rgba(255,255,255,.10) 46%, rgba(255,255,255,0) 60%),
-      linear-gradient(163deg, rgba(255,255,255,.20), rgba(255,255,255,.06) 46%, rgba(135,190,255,.12) 76%, rgba(255,255,255,.17));
-    -webkit-backdrop-filter:blur(30px) saturate(1.85) brightness(1.06);
-    backdrop-filter:blur(30px) saturate(1.85) brightness(1.06);
-    border:1px solid rgba(255,255,255,.52);
-    box-shadow:0 30px 80px rgba(3,16,52,.5),
-               0 2px 12px  rgba(6,26,70,.3),
-               0 0 0 1px rgba(120,180,255,.12),
-               inset 0 2px 1.5px rgba(255,255,255,.9),
-               inset 0 -1.5px 1px rgba(255,255,255,.28),
-               inset 0 -16px 34px rgba(120,195,255,.20),
-               inset 0 30px 50px -22px rgba(255,255,255,.5);
+    position:relative; border-radius:28px; overflow:hidden;
+    background:linear-gradient(172deg, rgba(255,255,255,.20), rgba(255,255,255,.10) 55%, rgba(255,255,255,.13));
+    -webkit-backdrop-filter:blur(28px) saturate(1.4);
+    backdrop-filter:blur(28px) saturate(1.4);
+    border:1px solid rgba(255,255,255,.38);
+    box-shadow:0 18px 50px rgba(15,45,110,.22),
+               inset 0 1px 0 rgba(255,255,255,.45);
   }
-  .glass::before { /* vitre supérieure : reflet net à bord courbe (signature Aero) */
-    content:""; position:absolute; left:10px; right:10px; top:5px; height:47%;
-    background:linear-gradient(rgba(255,255,255,.50), rgba(255,255,255,.20) 68%, rgba(255,255,255,.09));
-    border-radius:24px 24px 320px 320px / 24px 24px 70px 70px;
-    pointer-events:none;
+  .glass::before { /* voile lumineux discret en partie haute */
+    content:""; position:absolute; left:0; right:0; top:0; height:42%;
+    background:linear-gradient(rgba(255,255,255,.13), rgba(255,255,255,0));
+    border-radius:inherit; pointer-events:none;
   }
   .glass::after { /* balayage lumineux à l'entrée */
     content:""; position:absolute; top:-20%; bottom:-20%; width:34%; left:0;
-    background:linear-gradient(105deg, transparent, rgba(255,255,255,.5) 48%, rgba(255,255,255,.14) 60%, transparent);
+    background:linear-gradient(105deg, transparent, rgba(255,255,255,.24) 48%, rgba(255,255,255,.08) 60%, transparent);
     transform:translateX(-320%) skewX(-14deg); pointer-events:none;
   }
   .view.active .glass::after { animation:sheen 1.7s .45s cubic-bezier(.3,.4,.2,1) both; }
@@ -138,9 +130,9 @@ window.METEO_CONFIG = {
   #hero-chips { display:flex; gap:18px; margin-top:34px; }
   .chip {
     display:flex; align-items:center; gap:12px; padding:12px 26px; border-radius:999px;
-    background:linear-gradient(rgba(255,255,255,.46), rgba(255,255,255,.12) 55%, rgba(150,200,255,.22));
-    border:1px solid rgba(255,255,255,.55);
-    box-shadow:inset 0 1.5px 1px rgba(255,255,255,.85), inset 0 -6px 12px rgba(120,190,255,.25), 0 8px 20px rgba(4,20,60,.28);
+    background:linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.14));
+    border:1px solid rgba(255,255,255,.42);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 6px 16px rgba(15,45,110,.16);
     font-size:24px; font-weight:400;
     -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
   }
@@ -155,8 +147,8 @@ window.METEO_CONFIG = {
   .tile .t-value { font-size:84px; font-weight:200; margin-top:auto; line-height:1; font-variant-numeric:tabular-nums; }
   .tile .t-value small { font-size:.42em; font-weight:300; opacity:.85; margin-left:6px; }
   .tile .t-sub { font-size:22px; font-weight:300; opacity:.8; margin-top:12px; height:26px; }
-  .gauge { margin-top:16px; height:10px; border-radius:5px; background:rgba(8,30,80,.35); overflow:hidden;
-           box-shadow:inset 0 1px 3px rgba(4,16,50,.5); }
+  .gauge { margin-top:16px; height:10px; border-radius:5px; background:rgba(25,60,120,.22); overflow:hidden;
+           box-shadow:inset 0 1px 2px rgba(10,30,80,.3); }
   .gauge i { display:block; height:100%; border-radius:5px;
              background:linear-gradient(90deg,#9fe0ff,#4facfe 55%,#e8f7ff);
              box-shadow:0 0 12px rgba(120,200,255,.8); }
@@ -181,8 +173,8 @@ window.METEO_CONFIG = {
   .w-rain svg { width:17px; height:17px; }
   .w-min { font-size:26px; font-weight:300; opacity:.72; text-align:right; font-variant-numeric:tabular-nums; }
   .w-max { font-size:26px; font-weight:600; font-variant-numeric:tabular-nums; }
-  .w-track { position:relative; height:12px; border-radius:6px; background:rgba(8,30,80,.35);
-             box-shadow:inset 0 1px 3px rgba(4,16,50,.5); }
+  .w-track { position:relative; height:12px; border-radius:6px; background:rgba(25,60,120,.22);
+             box-shadow:inset 0 1px 2px rgba(10,30,80,.3); }
   .w-seg { position:absolute; top:0; bottom:0; border-radius:6px;
            box-shadow:0 0 14px rgba(160,215,255,.55), inset 0 1px 0 rgba(255,255,255,.5); }
 
@@ -841,9 +833,9 @@ const gfx = (() => {
   const bgCam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   const uniforms = {
     uTime:{value:0}, uAspect:{value:16/9},
-    uColTop:{value:new THREE.Color(0x0a2f78)},
-    uColMid:{value:new THREE.Color(0x2377d0)},
-    uColBot:{value:new THREE.Color(0x8fd4ec)},
+    uColTop:{value:new THREE.Color(0x2f6fc4)},
+    uColMid:{value:new THREE.Color(0x4f93d8)},
+    uColBot:{value:new THREE.Color(0x8ec1ea)},
     uCel:{value:new THREE.Vector2(.5,.75)},
     uSunI:{value:0}, uMoonI:{value:0},
     uWarm:{value:0}, uDay:{value:1},
@@ -877,26 +869,26 @@ const gfx = (() => {
         float t = uTime;
         // dégradé de fond, ondulé par du bruit lent
         float w = fbm(vec2(uv.x*2.1, uv.y*1.5) + t*.013);
-        float g = clamp(uv.y + (w-.5)*.2, 0., 1.);
+        float g = clamp(uv.y + (w-.5)*.12, 0., 1.);
         vec3 col = mix(uColBot, uColMid, smoothstep(0., .52, g));
         col = mix(col, uColTop, smoothstep(.42, 1., g));
         // rubans lumineux (aurora très douce)
         float night = 1.-uDay;
-        col += mix(vec3(.22,.85,.78), vec3(.36,.48,1.0), night) * band(uv,.64,.10,3.1,t) * (.055+.075*night);
-        col += mix(vec3(.5,.8,1.),   vec3(.52,.34,.95), night) * band(uv,.34,.075,2.2,t) * (.045+.06*night);
-        col += vec3(.85,.95,1.) * band(uv,.5,.06,1.6,t+40.) * .03;
+        col += mix(vec3(.22,.85,.78), vec3(.36,.48,1.0), night) * band(uv,.64,.10,3.1,t) * (.028+.05*night);
+        col += mix(vec3(.5,.8,1.),   vec3(.52,.34,.95), night) * band(uv,.34,.075,2.2,t) * (.022+.04*night);
+        col += vec3(.85,.95,1.) * band(uv,.5,.06,1.6,t+40.) * .018;
         // halo soleil / lune
         vec2 p = vec2(uv.x*uAspect, uv.y);
         vec2 s = vec2(uCel.x*uAspect, uCel.y);
         float d = distance(p,s);
         vec3 warmCol = mix(vec3(1.,.985,.92), vec3(1.,.66,.32), uWarm);
-        col += warmCol * uSunI * (exp(-d*d*20.)*.95 + exp(-d*3.2)*.32);
+        col += warmCol * uSunI * (exp(-d*d*20.)*.65 + exp(-d*3.2)*.20);
         // rayons discrets autour du soleil
         float angl = atan(p.y-s.y, p.x-s.x);
-        col += warmCol * uSunI * max(0., sin(angl*9. + t*.12)) * exp(-d*2.4) * .05;
-        col += vec3(.72,.83,1.) * uMoonI * (exp(-d*d*55.)*.75 + exp(-d*4.5)*.22);
+        col += warmCol * uSunI * max(0., sin(angl*9. + t*.12)) * exp(-d*2.4) * .028;
+        col += vec3(.72,.83,1.) * uMoonI * (exp(-d*d*55.)*.55 + exp(-d*4.5)*.15);
         // lueur chaude d'horizon (aube/crépuscule)
-        col = mix(col, vec3(1.,.58,.3), uWarm * .38 * exp(-abs(uv.y-.16)*5.5));
+        col = mix(col, vec3(1.,.58,.3), uWarm * .26 * exp(-abs(uv.y-.16)*5.5));
         // couche de nuages
         float cl = fbm(uv*vec2(3.,2.1) + vec2(t*.011, 0.));
         float cl2 = fbm(uv*vec2(5.,3.6) + vec2(t*.019, 3.7));
@@ -906,7 +898,7 @@ const gfx = (() => {
         // brouillard
         col = mix(col, vec3(.74,.8,.9)*mix(.3,1.,uDay), uFog*.62*(1.-uv.y*.5));
         // vignettage + éclair d'orage + dither
-        col *= 1. - .34*length(uv-vec2(.5,.46));
+        col *= 1. - .16*length(uv-vec2(.5,.46));
         col += vec3(1.,.98,.9)*uFlash;
         col += (hash(uv*vec2(1920.,1080.) + fract(t))-.5)*.012;
         gl_FragColor = vec4(col, 1.);
@@ -963,19 +955,19 @@ const gfx = (() => {
 
   /* — Cibles visuelles (adoucies image par image) — */
   const target = {
-    top:new THREE.Color(0x0a2f78), mid:new THREE.Color(0x2377d0), bot:new THREE.Color(0x8fd4ec),
+    top:new THREE.Color(0x2f6fc4), mid:new THREE.Color(0x4f93d8), bot:new THREE.Color(0x8ec1ea),
     cloud:0, fog:0, precip:0, mode:1, wind:0, storm:false,
   };
 
   const PALETTES = {
-    clear:   { day:[0x0a3d9e,0x1f7ad8,0x7fd0e8], night:[0x030a26,0x0c2258,0x1e4d94] },
-    part:    { day:[0x114699,0x3181d2,0x93c9e4], night:[0x040c28,0x0e2456,0x24508e] },
-    cloud:   { day:[0x2c4a7a,0x5678a8,0x9db4cc], night:[0x070d1f,0x141f3a,0x2a3c5c] },
-    fog:     { day:[0x51688a,0x7c92ae,0xaebfd0], night:[0x0a101f,0x1a2336,0x323f54] },
-    drizzle: { day:[0x1d3f77,0x4470a4,0x87a6c4], night:[0x050b20,0x101d40,0x243a63] },
-    rain:    { day:[0x16305e,0x37608f,0x7290b0], night:[0x04091c,0x0d1836,0x1f2f52] },
-    snow:    { day:[0x51749e,0x84a5c6,0xc4d7e6], night:[0x0b1226,0x1c2a46,0x3c4f6e] },
-    storm:   { day:[0x131f3d,0x2b3f66,0x54688c], night:[0x030614,0x0a1128,0x1a2440] },
+    clear:   { day:[0x2f6fc4,0x4f93d8,0x8ec1ea], night:[0x101f45,0x1f3a68,0x33558a] },
+    part:    { day:[0x3572c2,0x5595d6,0x94c3e6], night:[0x111f42,0x213c66,0x365888] },
+    cloud:   { day:[0x4a72a0,0x6f93bc,0xa5c0da], night:[0x141d33,0x24344f,0x3a4d6b] },
+    fog:     { day:[0x62809f,0x8aa5c0,0xb8cbdc], night:[0x161e2e,0x2a3547,0x424f63] },
+    drizzle: { day:[0x3a6499,0x5f88b4,0x96b5d2], night:[0x101b36,0x1f3054,0x344a70] },
+    rain:    { day:[0x35597f,0x54799f,0x86a5c2], night:[0x0e1830,0x1c2b4a,0x2f4265] },
+    snow:    { day:[0x6b8cb0,0x94b2d0,0xc6d8e8], night:[0x1a2438,0x2e3d55,0x475a74] },
+    storm:   { day:[0x2c3f60,0x475e82,0x748caa], night:[0x0b1226,0x16203a,0x283651] },
   };
 
   function applyWeather(){
