@@ -23,7 +23,7 @@ window.METEO_CONFIG = {
 <style>
   * { margin:0; padding:0; box-sizing:border-box; cursor:none !important; }
   html, body {
-    width:100%; height:100%; overflow:hidden; background:#06122e;
+    width:100%; height:100%; overflow:hidden; background:#6aa2dc;
     font-family:"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
     color:#fff; user-select:none; -webkit-user-select:none;
     font-kerning:normal;
@@ -821,9 +821,9 @@ const gfx = (() => {
   const bgCam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   const uniforms = {
     uTime:{value:0},
-    uColTop:{value:new THREE.Color(0x2f6fc4)},
-    uColMid:{value:new THREE.Color(0x4f93d8)},
-    uColBot:{value:new THREE.Color(0x8ec1ea)},
+    uColTop:{value:new THREE.Color(0x5b95d6)},
+    uColMid:{value:new THREE.Color(0x74abe2)},
+    uColBot:{value:new THREE.Color(0xa8cdf0)},
     uWarm:{value:0}, uDay:{value:1},
     uCloud:{value:0}, uFog:{value:0}, uFlash:{value:0},
   };
@@ -860,7 +860,7 @@ const gfx = (() => {
         float cl = fbm(uv*vec2(2.2,1.6) + vec2(t*.008, 0.));
         float cl2 = fbm(uv*vec2(3.8,2.8) + vec2(t*.013, 3.7));
         float cm = smoothstep(.6-uCloud*.3, 1.05, cl*.7+cl2*.4) * uCloud;
-        vec3 cc = mix(vec3(.16,.2,.3), vec3(.9,.93,.97), clamp(uDay,.15,1.));
+        vec3 cc = mix(vec3(.32,.38,.48), vec3(.9,.93,.97), clamp(uDay,.2,1.));
         col = mix(col, cc, cm*.45);
         // brouillard
         col = mix(col, vec3(.76,.82,.9)*mix(.35,1.,uDay), uFog*.5*(1.-uv.y*.5));
@@ -922,19 +922,19 @@ const gfx = (() => {
 
   /* — Cibles visuelles (adoucies image par image) — */
   const target = {
-    top:new THREE.Color(0x2f6fc4), mid:new THREE.Color(0x4f93d8), bot:new THREE.Color(0x8ec1ea),
+    top:new THREE.Color(0x5b95d6), mid:new THREE.Color(0x74abe2), bot:new THREE.Color(0xa8cdf0),
     cloud:0, fog:0, precip:0, mode:1, wind:0, storm:false,
   };
 
   const PALETTES = {
-    clear:   { day:[0x2f6fc4,0x4f93d8,0x8ec1ea], night:[0x101f45,0x1f3a68,0x33558a] },
-    part:    { day:[0x3572c2,0x5595d6,0x94c3e6], night:[0x111f42,0x213c66,0x365888] },
-    cloud:   { day:[0x4a72a0,0x6f93bc,0xa5c0da], night:[0x141d33,0x24344f,0x3a4d6b] },
-    fog:     { day:[0x62809f,0x8aa5c0,0xb8cbdc], night:[0x161e2e,0x2a3547,0x424f63] },
-    drizzle: { day:[0x3a6499,0x5f88b4,0x96b5d2], night:[0x101b36,0x1f3054,0x344a70] },
-    rain:    { day:[0x35597f,0x54799f,0x86a5c2], night:[0x0e1830,0x1c2b4a,0x2f4265] },
-    snow:    { day:[0x6b8cb0,0x94b2d0,0xc6d8e8], night:[0x1a2438,0x2e3d55,0x475a74] },
-    storm:   { day:[0x2c3f60,0x475e82,0x748caa], night:[0x0b1226,0x16203a,0x283651] },
+    clear:   { day:[0x5b95d6,0x74abe2,0xa8cdf0], night:[0x2a4776,0x3b5e94,0x5680b2] },
+    part:    { day:[0x5f97d4,0x78ade0,0xabcfee], night:[0x2b4774,0x3c5e92,0x5680b0] },
+    cloud:   { day:[0x6f94ba,0x8badd0,0xb2cbe2], night:[0x33455f,0x475d7c,0x627e9d] },
+    fog:     { day:[0x7e97b0,0x9cb2c8,0xc0d1e0], night:[0x3a4859,0x50617a,0x6d8098] },
+    drizzle: { day:[0x6690bc,0x81a8d0,0xaac7e4], night:[0x2e4468,0x40598a,0x5a7aa4] },
+    rain:    { day:[0x5f83a8,0x7899bc,0x9fb9d4], night:[0x2b3d58,0x3d5375,0x567092] },
+    snow:    { day:[0x8aa8c8,0xa8c2dc,0xcfdff0], night:[0x3d4c62,0x556a84,0x7288a2] },
+    storm:   { day:[0x54708f,0x6d88a8,0x92aac4], night:[0x25344c,0x364a66,0x4f6684] },
   };
 
   function applyWeather(){
