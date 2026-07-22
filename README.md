@@ -32,7 +32,9 @@ window.METEO_CONFIG = {
 - **Fond Three.js 100 % génératif** : dégradé animé par shader qui suit la météo
   *et* l'heure réelle (aube, jour, crépuscule, nuit), halo de soleil/lune positionné
   d'après les heures de lever/coucher, couche de nuages en bruit fractal, rubans
-  lumineux, pluie/neige en particules GPU, éclairs pendant les orages.
+  lumineux, nuages volumétriques auto-ombrés en parallaxe, rais de lumière
+  autour du soleil par ciel dégagé, éclats de verre irisés en dérive lente,
+  pluie/neige en particules GPU, éclairs pendant les orages.
 - **UI en verre** (DOM + `backdrop-filter`) : 5 vues en rotation ~10 s —
   Maintenant, En détail, Heure par heure, La semaine, Soleil & lune — avec
   transitions flou/échelle et balayage de reflet.
