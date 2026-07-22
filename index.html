@@ -909,7 +909,7 @@ const gfx = (() => {
         // brouillard
         col = mix(col, vec3(.74,.8,.9)*mix(.3,1.,uDay), uFog*.62*(1.-uv.y*.5));
         // vignettage + éclair d'orage + dither
-        col *= 1. - .34*length(uv-vec2(.5,.46));
+        col *= 1. - .15*length(uv-vec2(.5,.46));
         col += vec3(1.,.98,.9)*uFlash;
         col += (hash(uv*vec2(1920.,1080.) + fract(t))-.5)*.012;
         gl_FragColor = vec4(col, 1.);
@@ -1162,9 +1162,11 @@ const gfx = (() => {
     const pal = PALETTES[cls] || PALETTES.clear;
     const mixCol = (i)=> new THREE.Color(pal.night[i]).lerp(new THREE.Color(pal.day[i]), cur.day);
     const k = 1 - Math.pow(.25, dt);   // lissage doux
-    easeCol(uniforms.uColTop, mixCol(0), k);
-    easeCol(uniforms.uColMid, mixCol(1), k);
-    easeCol(uniforms.uColBot, mixCol(2), k);
+    // dégradé resserré : haut et bas convergent vers la teinte médiane
+    const cMid = mixCol(1);
+    easeCol(uniforms.uColTop, mixCol(0).lerp(cMid, .55), k);
+    easeCol(uniforms.uColMid, cMid, k);
+    easeCol(uniforms.uColBot, mixCol(2).lerp(cMid, .5), k);
 
     uniforms.uCel.value.set(cel.x, cel.y);
     const clearness = 1 - (target.cloud*.75);
