@@ -23,7 +23,7 @@ window.METEO_CONFIG = {
 <style>
   * { margin:0; padding:0; box-sizing:border-box; cursor:none !important; }
   html, body {
-    width:100%; height:100%; overflow:hidden; background:#06122e;
+    width:100%; height:100%; overflow:hidden; background:#1a6fd8;
     font-family:"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
     color:#fff; user-select:none; -webkit-user-select:none;
     font-kerning:normal;
@@ -844,9 +844,9 @@ const gfx = (() => {
   const bgCam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   const uniforms = {
     uTime:{value:0}, uAspect:{value:16/9},
-    uColTop:{value:new THREE.Color(0x0a2f78)},
-    uColMid:{value:new THREE.Color(0x2377d0)},
-    uColBot:{value:new THREE.Color(0x8fd4ec)},
+    uColTop:{value:new THREE.Color(0x0a56de)},
+    uColMid:{value:new THREE.Color(0x2088f2)},
+    uColBot:{value:new THREE.Color(0x66dcf6)},
     uCel:{value:new THREE.Vector2(.5,.75)},
     uSunI:{value:0}, uMoonI:{value:0},
     uWarm:{value:0}, uDay:{value:1},
@@ -1128,20 +1128,22 @@ const gfx = (() => {
 
   /* — Cibles visuelles (adoucies image par image) — */
   const target = {
-    top:new THREE.Color(0x0a2f78), mid:new THREE.Color(0x2377d0), bot:new THREE.Color(0x8fd4ec),
+    top:new THREE.Color(0x0a56de), mid:new THREE.Color(0x2088f2), bot:new THREE.Color(0x66dcf6),
     cloud:0, fog:0, precip:0, mode:1, wind:0, storm:false,
     dark:0, rays:1, shard:1,
   };
 
   const PALETTES = {
-    clear:   { day:[0x0a3d9e,0x1f7ad8,0x7fd0e8], night:[0x030a26,0x0c2258,0x1e4d94] },
-    part:    { day:[0x114699,0x3181d2,0x93c9e4], night:[0x040c28,0x0e2456,0x24508e] },
-    cloud:   { day:[0x2c4a7a,0x5678a8,0x9db4cc], night:[0x070d1f,0x141f3a,0x2a3c5c] },
-    fog:     { day:[0x51688a,0x7c92ae,0xaebfd0], night:[0x0a101f,0x1a2336,0x323f54] },
-    drizzle: { day:[0x1d3f77,0x4470a4,0x87a6c4], night:[0x050b20,0x101d40,0x243a63] },
-    rain:    { day:[0x16305e,0x37608f,0x7290b0], night:[0x04091c,0x0d1836,0x1f2f52] },
-    snow:    { day:[0x51749e,0x84a5c6,0xc4d7e6], night:[0x0b1226,0x1c2a46,0x3c4f6e] },
-    storm:   { day:[0x131f3d,0x2b3f66,0x54688c], night:[0x030614,0x0a1128,0x1a2440] },
+    // Aero vif : azur profond → cyan lumineux pour le beau temps ; les états
+    // couverts restent bleutés-vivants plutôt que gris, l'orage reste moody.
+    clear:   { day:[0x0a56de,0x2088f2,0x66dcf6], night:[0x06133f,0x134394,0x2f79d6] },
+    part:    { day:[0x1560d4,0x3a92ee,0x84d4f6], night:[0x07153e,0x14428f,0x3379cd] },
+    cloud:   { day:[0x35649f,0x6c9ad4,0xa8d2f2], night:[0x0d1b3a,0x263f6c,0x436592] },
+    fog:     { day:[0x5c81b2,0x8db0d6,0xc4dcf0], night:[0x141d33,0x2c3d5a,0x496486] },
+    drizzle: { day:[0x2059ac,0x4c8ed4,0x8bcbf2], night:[0x0a1a3d,0x163862,0x316096] },
+    rain:    { day:[0x1e5092,0x3f83bf,0x79b6e0], night:[0x08132c,0x12335e,0x2a5a94] },
+    snow:    { day:[0x6090cb,0x97c1ea,0xd0f2fc], night:[0x121f40,0x2e4576,0x4d78ac] },
+    storm:   { day:[0x243c60,0x446292,0x7191ba], night:[0x05091f,0x121d40,0x263f68] },
   };
 
   function applyWeather(){
@@ -1203,9 +1205,9 @@ const gfx = (() => {
     const k = 1 - Math.pow(.25, dt);   // lissage doux
     // dégradé resserré : haut et bas convergent vers la teinte médiane
     const cMid = mixCol(1);
-    easeCol(uniforms.uColTop, mixCol(0).lerp(cMid, .55), k);
+    easeCol(uniforms.uColTop, mixCol(0).lerp(cMid, .5), k);
     easeCol(uniforms.uColMid, cMid, k);
-    easeCol(uniforms.uColBot, mixCol(2).lerp(cMid, .5), k);
+    easeCol(uniforms.uColBot, mixCol(2).lerp(cMid, .34), k);   // laisse vivre le cyan du bas
 
     uniforms.uCel.value.set(cel.x, cel.y);
     const clearness = 1 - (target.cloud*.75);
