@@ -934,64 +934,100 @@ const gfx = (() => {
   const cloudFrag = `
     precision highp float;
     varying vec2 vUv;
-    uniform float uTime,uSeed,uOpacity,uDay,uWarm,uDark;
+    uniform float uTime,uSeed,uOpacity,uDay,uWarm,uDark,uWisp;
     uniform vec2 uLdir;
+    uniform vec3 uSkyCol;
     float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453123); }
     float noise(vec2 p){
       vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
       return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),
                  mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x), f.y);
     }
-    float fbm(vec2 p){
-      float v=0., a=.5;
-      for(int i=0;i<4;i++){ v+=a*noise(p); p=p*2.02+vec2(11.3,7.9); a*=.5; }
+    float fbm3(vec2 p){
+      float v=0.,a=.5;
+      for(int i=0;i<3;i++){ v+=a*noise(p); p=p*2.03+vec2(11.3,7.9); a*=.5; }
       return v;
     }
-    float density(vec2 uv){
-      vec2 p = (uv-.5)*2.;
-      float ell  = 1. - smoothstep(.15, 1., length(p*vec2(1., 1.35)));
-      float base = smoothstep(-1., -.35, p.y);                    // fond plat
-      vec2 q = uv*vec2(2.6, 2.) + uSeed;
-      q.x += uTime*.007;
-      float n = fbm(q + .5*fbm(q*1.7 - uTime*.004));              // chou-fleur
-      return n * ell * base;
+    float fbm5(vec2 p){
+      float v=0.,a=.5;
+      for(int i=0;i<5;i++){ v+=a*noise(p); p=p*2.02+vec2(11.3,7.9); a*=.55; }
+      return v;
+    }
+    // Densité détaillée : silhouette DÉFINIE par le fractal (pas de masque ovale).
+    // Warp de domaine → billows en chou-fleur ; érosion du sommet → filaments.
+    float dens(vec2 uv){
+      vec2 q = uv*vec2(2.5,2.15) + uSeed;
+      q.x += uTime*.006;
+      vec2 w = vec2(fbm3(q*.9 + 1.7), fbm3(q*.9 + 8.3));          // domaine ondulé
+      float n = fbm5(q + w*(1.15 - uWisp*.4));
+      n -= smoothstep(.28, 1., uv.y) * (.34 + uWisp*.22);        // sommet effiloché
+      n -= smoothstep(.30, 0., uv.y) * .18;                      // base repliée
+      // enveloppe LARGE et douce : ne fait que fondre les bords du plan
+      vec2 e = abs(uv - .5);
+      float env = smoothstep(.5,.14,e.x) * smoothstep(.5,.12,e.y);
+      float th = .46 + uWisp*.06;                                // seuil (type de nuage)
+      return clamp((n*env - th) / .30, 0., 1.);
+    }
+    // Densité grossière pour la marche de lumière (moins d'octaves, sans warp)
+    float densLite(vec2 uv){
+      vec2 q = uv*vec2(2.5,2.15) + uSeed; q.x += uTime*.006;
+      float n = fbm3(q);
+      n -= smoothstep(.28,1.,uv.y)*(.34+uWisp*.22) + smoothstep(.30,0.,uv.y)*.18;
+      vec2 e = abs(uv-.5);
+      float env = smoothstep(.5,.14,e.x)*smoothstep(.5,.12,e.y);
+      return clamp((n*env - (.46+uWisp*.06)) / .30, 0., 1.);
     }
     void main(){
-      float d = density(vUv);
-      float m = smoothstep(.30, .56, d);
-      if (m < .01) discard;
-      float d2 = density(vUv + uLdir*.06);                        // vers la lumière
-      float lit = clamp(.72 + (d - d2)*4., 0., 1.);
-      lit *= mix(.84, 1.06, smoothstep(.05, .7, vUv.y));          // base ombrée
-      lit = mix(.55 + lit*.35, lit, mix(.6, 1., uDay));           // nuit plus douce
-      vec3 sunTint  = mix(vec3(1.,.995,.98), vec3(1.,.82,.62), uWarm);
-      vec3 litC  = mix(vec3(.5,.56,.7),   vec3(1.)*sunTint,    uDay);
-      vec3 shadC = mix(vec3(.32,.36,.48), vec3(.78,.82,.90),   uDay);
-      litC  = mix(litC,  vec3(.52,.55,.64), uDark*.75);          // couvert / orage
-      shadC = mix(shadC, vec3(.25,.28,.36), uDark*.8);
-      vec3 col = mix(shadC, litC, lit);
-      float edge = smoothstep(0.,.07,vUv.x)*smoothstep(1.,.93,vUv.x)
-                 * smoothstep(0.,.09,vUv.y)*smoothstep(1.,.9,vUv.y);
-      float a = m * (.7 + .3*smoothstep(.45,.85,d)) * edge * uOpacity;
+      float d = dens(vUv);
+      if (d < .02) discard;
+
+      // marche de lumière : profondeur optique accumulée vers le soleil (Beer-Powder)
+      vec2 st = uLdir * .05;
+      vec2 sp = vUv;
+      float tau = 0.;
+      for(int i=0;i<5;i++){ sp += st; tau += densLite(sp); }
+      tau /= 5.;
+      float toLight = exp(-tau*3.2);                             // 1 = éclairé, 0 = ombré
+      float powder  = 1. - exp(-d*3.5);                          // bords qui rougeoient
+      float lightE  = mix(.35, 1., toLight) * mix(.55, 1., powder);
+
+      // ambiance verticale : les sommets captent la lumière du ciel
+      lightE *= mix(.72, 1.08, smoothstep(0., .85, vUv.y));
+
+      // ── palette moody ──
+      vec3 sunLit = mix(vec3(1.,.99,.97), vec3(1.,.79,.55), uWarm);   // crème → ambre bas soleil
+      vec3 shadow = mix(vec3(.30,.35,.5), uSkyCol*.62, .55);          // ombre froide teintée ciel
+      shadow = mix(shadow, shadow*vec3(.62,.6,.66), uDark);          // orage : plus lourd
+      sunLit = mix(sunLit, mix(sunLit, uSkyCol, .35), uDark*.6);
+      vec3 col = mix(shadow, sunLit, lightE);
+      col = mix(col, uSkyCol*1.05, (1.-toLight)*.22);                // rebond du ciel dans l'ombre
+      // liseré argenté vers le soleil sur le bord du nuage
+      float rim = smoothstep(.02,.28,d) * (1.-smoothstep(.28,.62,d)) * toLight;
+      col += sunLit * rim * .5 * uDay;
+      // nuit : désaturé et assombri vers le ciel
+      float lum = dot(col, vec3(.3,.5,.2));
+      col = mix(mix(vec3(lum)*.7, col, .45), col, clamp(uDay,.15,1.));
+
+      float a = pow(d, .85) * uOpacity;
       gl_FragColor = vec4(col, a);
     }`;
   const cloudGeo = new THREE.PlaneGeometry(1,1);
   const CLOUD_DEFS = [
-    { x:-10.5, y:5.2, z:-5.5, w:13.0, h:5.0, th:.00, op:.95, sp: .16, seed: 3.1 },
-    { x:  7.5, y:5.4, z:-4.2, w:10.5, h:4.4, th:.10, op:.90, sp:-.22, seed: 9.7 },
-    { x: -2.0, y:5.8, z:-6.0, w:14.5, h:4.8, th:.22, op:.85, sp: .12, seed:17.3 },
-    { x: 12.5, y:4.6, z: -.5, w: 9.5, h:4.0, th:.34, op:.95, sp: .30, seed:23.9 },
-    { x:-14.0, y:4.4, z:-1.2, w: 8.0, h:3.6, th:.46, op:.90, sp:-.32, seed:31.7 },
-    { x:  2.5, y:5.0, z:-3.4, w:11.0, h:4.4, th:.58, op:.88, sp: .19, seed:41.3 },
-    { x: -6.5, y:5.6, z:-4.8, w: 9.5, h:4.2, th:.70, op:.85, sp: .25, seed:53.9 },
+    { x:-10.5, y:5.2, z:-5.5, w:15.0, h:6.4, th:.00, op:.95, sp: .16, seed: 3.1, wisp:.15 },
+    { x:  7.5, y:5.6, z:-4.2, w:12.5, h:5.6, th:.10, op:.92, sp:-.22, seed: 9.7, wisp:.55 },
+    { x: -2.0, y:6.2, z:-6.0, w:16.5, h:6.0, th:.22, op:.88, sp: .12, seed:17.3, wisp:.85 },
+    { x: 12.5, y:4.7, z: -.5, w:11.0, h:5.2, th:.34, op:.96, sp: .30, seed:23.9, wisp:.05 },
+    { x:-14.0, y:4.5, z:-1.2, w: 9.5, h:4.6, th:.46, op:.93, sp:-.32, seed:31.7, wisp:.35 },
+    { x:  2.5, y:5.2, z:-3.4, w:13.0, h:5.6, th:.58, op:.90, sp: .19, seed:41.3, wisp:.7 },
+    { x: -6.5, y:5.8, z:-4.8, w:11.0, h:5.0, th:.70, op:.88, sp: .25, seed:53.9, wisp:.25 },
   ];
   const clouds = CLOUD_DEFS.map(def => {
     const mat = new THREE.ShaderMaterial({
       transparent:true, depthWrite:false, vertexShader:cloudVert, fragmentShader:cloudFrag,
       uniforms:{
         uTime:{value:0}, uSeed:{value:def.seed}, uOpacity:{value:0},
-        uDay:{value:1}, uWarm:{value:0}, uDark:{value:0},
-        uLdir:{value:new THREE.Vector2(0,1)},
+        uDay:{value:1}, uWarm:{value:0}, uDark:{value:0}, uWisp:{value:def.wisp},
+        uLdir:{value:new THREE.Vector2(0,1)}, uSkyCol:{value:new THREE.Color(0x4f93d8)},
       },
     });
     const m = new THREE.Mesh(cloudGeo, mat);
@@ -1195,6 +1231,7 @@ const gfx = (() => {
       mu.uDay.value = cur.day;
       mu.uWarm.value = uniforms.uWarm.value;
       mu.uDark.value = Math.max(cur.dark, sstep(.75,.95,cur.cloudAmt)*.28);
+      mu.uSkyCol.value.copy(uniforms.uColMid.value);
       mu.uOpacity.value = sstep(u.th, u.th+.28, cur.cloudAmt) * u.op;
       const lx = sunWX - c.position.x, ly = sunWY - c.position.y;
       const ll = Math.hypot(lx, ly) || 1;
