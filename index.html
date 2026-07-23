@@ -1038,51 +1038,69 @@ const gfx = (() => {
     return m;
   });
 
-  // Éclats de verre : prismes hexagonaux fins, facettes par dérivées écran,
-  // fresnel irisé + double reflet spéculaire — le vocabulaire des panneaux, en 3D
-  const shardGeo = new THREE.CylinderGeometry(.5, .5, .09, 6);
-  shardGeo.rotateX(Math.PI/2);
-  const shardMat = new THREE.ShaderMaterial({
-    transparent:true, depthWrite:false, side:THREE.DoubleSide,
-    blending:THREE.AdditiveBlending,
-    uniforms:{ uGlow:{value:0} },
-    vertexShader:`
-      varying vec3 vW, vV;
-      void main(){
-        vec4 wp = modelMatrix * vec4(position,1.);
-        vW = wp.xyz; vV = cameraPosition - wp.xyz;
-        gl_Position = projectionMatrix * viewMatrix * wp;
-      }`,
+  // Lave « lava-lamp » : metaballs qui fusionnent, rendues en UNE passe plein
+  // écran (alpha = 0 hors des blobs → aucun quad individuel, donc aucune boîte
+  // possible). Corps liquide translucide teinté par le ciel, chaud au coucher.
+  const BLOBS = [
+    { x:.16, y:.30, r:.125, ay:.26, sy:.070, py:0.0, ax:.05, sx:.055, px:1.0 },
+    { x:.30, y:.66, r:.10,  ay:.30, sy:.090, py:1.7, ax:.06, sx:.045, px:2.1 },
+    { x:.48, y:.40, r:.135, ay:.24, sy:.060, py:3.0, ax:.07, sx:.050, px:0.4 },
+    { x:.60, y:.72, r:.11,  ay:.28, sy:.080, py:4.2, ax:.05, sx:.055, px:3.3 },
+    { x:.76, y:.34, r:.125, ay:.26, sy:.065, py:5.1, ax:.06, sx:.040, px:1.5 },
+    { x:.88, y:.60, r:.09,  ay:.31, sy:.085, py:2.4, ax:.05, sx:.050, px:4.0 },
+    { x:.40, y:.55, r:.115, ay:.27, sy:.055, py:0.9, ax:.08, sx:.048, px:2.8 },
+  ];
+  const metaScene = new THREE.Scene();
+  const metaMat = new THREE.ShaderMaterial({
+    transparent:true, depthTest:false, depthWrite:false,
+    uniforms:{
+      uTime:{value:0}, uAspect:{value:16/9}, uOpacity:{value:0},
+      uWarm:{value:0}, uDay:{value:1}, uSkyCol:{value:new THREE.Color(0x4f93d8)},
+      uBlobs:{value:BLOBS.map(()=>new THREE.Vector3())},
+    },
+    vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
     fragmentShader:`
-      varying vec3 vW, vV;
-      uniform float uGlow;
+      precision highp float;
+      varying vec2 vUv;
+      uniform float uTime,uAspect,uOpacity,uWarm,uDay;
+      uniform vec3 uBlobs[7];
+      uniform vec3 uSkyCol;
       void main(){
-        vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
-        vec3 v = normalize(vV);
-        float ndv = abs(dot(n,v));
-        float fr = pow(1.-ndv, 2.2);
-        vec3 iri = .5 + .5*cos(6.2832*(ndv*2.6 + vW.y*.06 + vec3(0.,.33,.67)));
-        vec3 edge = mix(vec3(.82,.9,1.), iri, .38);
-        float s1 = pow(max(dot(n, normalize(vec3(.45,.75,.55))),0.), 60.);
-        float s2 = pow(max(dot(n, normalize(vec3(-.55,-.2,.75))),0.), 90.);
-        vec3 col = edge*(.1 + fr*1.25) + vec3(1.)*(s1 + s2*.6);
-        float a = clamp((fr*.75 + s1*.7 + s2*.4 + .03) * uGlow, 0., 1.);
-        gl_FragColor = vec4(col * a, 1.);                 // additif : que de la lumière
+        vec2 p = vec2(vUv.x*uAspect, vUv.y);
+        float field = 0.;
+        vec2 grad = vec2(0.);
+        for(int i=0;i<7;i++){
+          vec2 c = vec2(uBlobs[i].x*uAspect, uBlobs[i].y);
+          float r = uBlobs[i].z;
+          vec2 d = p - c;
+          float dd = dot(d,d) + 1e-4;
+          field += r*r/dd;
+          grad  += (-2.*r*r/(dd*dd))*d;                 // fusion douce des blobs
+        }
+        float e = .06;
+        float surf = smoothstep(1.-e, 1.+e, field);
+        if(surf < .003) discard;                        // hors blob → rien (pas de boîte)
+        vec3 n = normalize(vec3(-grad*.06, 1.));         // normale approchée (bombé)
+        // corps : aqua lumineux translucide teinté par le ciel + volume
+        vec3 aqua = mix(vec3(.5,.86,1.), uSkyCol*1.25+.05, .42);
+        vec3 body = aqua*(.82 + .32*n.z) * mix(.9,1.12,vUv.y);
+        float interior = smoothstep(1., 2.4, field);     // cœur plus dense/lumineux
+        body += aqua*interior*.16;
+        body = mix(body, mix(body, vec3(1.,.6,.4), .7), uWarm*.72);   // chaud au coucher
+        // reflet spéculaire + ménisque lumineux net sur le bord
+        float spec = pow(max(dot(n, normalize(vec3(.32,.66,.7))),0.), 26.);
+        float rim  = clamp(1. - abs(field-1.)/(e*2.4), 0., 1.);
+        vec3 col = body
+                 + vec3(1.,.99,.95)*spec*1.05
+                 + mix(vec3(.85,.96,1.), vec3(1.,.82,.6), uWarm)*rim*.5;
+        // nuit : plus sombre & désaturé
+        float lum = dot(col, vec3(.3,.5,.2));
+        col = mix(mix(vec3(lum)*.72, col, .5), col, clamp(uDay,.2,1.));
+        gl_FragColor = vec4(col, surf*uOpacity);
       }`,
   });
-  const shards = [];
-  for (let i=0;i<9;i++){
-    const m = new THREE.Mesh(shardGeo, shardMat);
-    const s = .55 + Math.pow((i*.618)%1, 1.4)*.9;
-    m.scale.set(s*(1.1+((i*.37)%1)*.7), s*.9, s);
-    m.position.set((((i*.717)%1)*2-1)*13.5, (((i*.443)%1)*2-1)*7.5, -5+((i*.269)%1)*8);
-    m.rotation.set(i*1.7, i*2.3, i*.9);
-    m.userData = {
-      axis:new THREE.Vector3(Math.sin(i*2.1), Math.cos(i*1.3), Math.sin(i*.7+1)).normalize(),
-      rs:.05+((i*.531)%1)*.1, vy:.06+((i*.83)%1)*.12, ph:i*2.4,
-    };
-    shards.push(m); scene.add(m);
-  }
+  const metaU = metaMat.uniforms;
+  metaScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2), metaMat));
 
   // Précipitations (pluie / neige)
   const P = 900;
@@ -1130,7 +1148,7 @@ const gfx = (() => {
   const target = {
     top:new THREE.Color(0x0a56de), mid:new THREE.Color(0x2088f2), bot:new THREE.Color(0x66dcf6),
     cloud:0, fog:0, precip:0, mode:1, wind:0, storm:false,
-    dark:0, rays:1, shard:1,
+    dark:0, rays:1, lava:.78,
   };
 
   const PALETTES = {
@@ -1162,7 +1180,7 @@ const gfx = (() => {
     target.storm = cls==="storm";
     target.dark = cls==="storm" ? 1 : cls==="rain" ? .3 : 0;
     target.rays = cls==="clear" ? 1 : cls==="part" ? .45 : 0;
-    target.shard = (rainy || cls==="snow" || cls==="fog") ? .35 : 1;
+    target.lava = (cls==="clear"||cls==="part") ? .8 : cls==="storm" ? .44 : .6;
   }
 
   /* Position du soleil/lune + facteur jour, recalculés en continu */
@@ -1250,15 +1268,18 @@ const gfx = (() => {
       mu.uLdir.value.set(lx/ll, ly/ll);
     }
 
-    // éclats de verre : rotation et dérive lentes
-    shardMat.uniforms.uGlow.value = lerp(shardMat.uniforms.uGlow.value,
-      target.shard*(.7+.3*cur.day), k);
-    for (const sh of shards){
-      const u = sh.userData;
-      sh.rotateOnAxis(u.axis, u.rs*dt);
-      sh.position.y += u.vy*dt;
-      sh.position.x += Math.sin(t*.3 + u.ph)*.1*dt;
-      if (sh.position.y > 9){ sh.position.y = -9; sh.position.x = (Math.random()*2-1)*13.5; }
+    // lave : metaballs qui bobent façon lava-lamp et fusionnent
+    metaU.uTime.value = t;
+    metaU.uOpacity.value = lerp(metaU.uOpacity.value, target.lava, k);
+    metaU.uWarm.value = uniforms.uWarm.value;
+    metaU.uDay.value = cur.day;
+    metaU.uSkyCol.value.copy(uniforms.uColMid.value);
+    for (let i=0;i<BLOBS.length;i++){
+      const b = BLOBS[i];
+      metaU.uBlobs.value[i].set(
+        b.x + Math.sin(t*b.sx + b.px)*b.ax,
+        b.y + Math.sin(t*b.sy + b.py)*b.ay,
+        b.r);
     }
 
     // éclairs d'orage
@@ -1283,6 +1304,7 @@ const gfx = (() => {
     renderer.clear();
     renderer.render(bgScene, bgCam);
     renderer.render(scene, cam);
+    renderer.render(metaScene, bgCam);          // lave par-dessus, sous l'UI DOM
   }
 
   function resize(){
@@ -1290,6 +1312,7 @@ const gfx = (() => {
     cam.aspect = innerWidth/innerHeight;
     cam.updateProjectionMatrix();
     uniforms.uAspect.value = innerWidth/innerHeight;
+    metaU.uAspect.value = innerWidth/innerHeight;
   }
 
   return { start(){ resize(); frame(); }, resize, applyWeather };
