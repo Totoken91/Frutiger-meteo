@@ -1038,51 +1038,75 @@ const gfx = (() => {
     return m;
   });
 
-  // Éclats de verre : prismes hexagonaux fins, facettes par dérivées écran,
-  // fresnel irisé + double reflet spéculaire — le vocabulaire des panneaux, en 3D
-  const shardGeo = new THREE.CylinderGeometry(.5, .5, .09, 6);
-  shardGeo.rotateX(Math.PI/2);
-  const shardMat = new THREE.ShaderMaterial({
-    transparent:true, depthWrite:false, side:THREE.DoubleSide,
-    blending:THREE.AdditiveBlending,
-    uniforms:{ uGlow:{value:0} },
-    vertexShader:`
-      varying vec3 vW, vV;
-      void main(){
-        vec4 wp = modelMatrix * vec4(position,1.);
-        vW = wp.xyz; vV = cameraPosition - wp.xyz;
-        gl_Position = projectionMatrix * viewMatrix * wp;
-      }`,
-    fragmentShader:`
-      varying vec3 vW, vV;
-      uniform float uGlow;
-      void main(){
-        vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
-        vec3 v = normalize(vV);
-        float ndv = abs(dot(n,v));
-        float fr = pow(1.-ndv, 2.2);
-        vec3 iri = .5 + .5*cos(6.2832*(ndv*2.6 + vW.y*.06 + vec3(0.,.33,.67)));
-        vec3 edge = mix(vec3(.82,.9,1.), iri, .38);
-        float s1 = pow(max(dot(n, normalize(vec3(.45,.75,.55))),0.), 60.);
-        float s2 = pow(max(dot(n, normalize(vec3(-.55,-.2,.75))),0.), 90.);
-        vec3 col = edge*(.1 + fr*1.25) + vec3(1.)*(s1 + s2*.6);
-        float a = clamp((fr*.75 + s1*.7 + s2*.4 + .03) * uGlow, 0., 1.);
-        gl_FragColor = vec4(col * a, 1.);                 // additif : que de la lumière
-      }`,
-  });
-  const shards = [];
-  for (let i=0;i<9;i++){
-    const m = new THREE.Mesh(shardGeo, shardMat);
-    const s = .55 + Math.pow((i*.618)%1, 1.4)*.9;
-    m.scale.set(s*(1.1+((i*.37)%1)*.7), s*.9, s);
-    m.position.set((((i*.717)%1)*2-1)*13.5, (((i*.443)%1)*2-1)*7.5, -5+((i*.269)%1)*8);
-    m.rotation.set(i*1.7, i*2.3, i*.9);
+  // Bokeh de verre hexagonal : cristaux face-caméra à bord d'ouverture irisé,
+  // cœur givré et halo doux. Profondeur de champ (grands/flous ↔ petits/nets qui
+  // scintillent), teinte reprise du ciel → chauds au coucher. Vocabulaire Aero.
+  const hexGeo = new THREE.PlaneGeometry(1,1);
+  const shardVert = `
+    varying vec2 vUv;
+    void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }`;
+  const shardFrag = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform float uSpin,uSeed,uGlow,uSoft,uTwinkle;
+    uniform vec3 uTint;
+    float sdHex(vec2 p, float r){
+      const vec3 k = vec3(-.8660254,.5,.5773503);
+      p = abs(p);
+      p -= 2.*min(dot(k.xy,p),0.)*k.xy;
+      p -= vec2(clamp(p.x,-k.z*r,k.z*r), r);
+      return length(p)*sign(p.y);
+    }
+    void main(){
+      vec2 c = (vUv-.5)*2.;
+      float ca=cos(uSpin), sa=sin(uSpin);
+      c = mat2(ca,-sa,sa,ca)*c;
+      float d = sdHex(c, .6);
+      float soft = mix(.02,.26,uSoft);                       // profondeur de champ
+      float fill = smoothstep(soft, -soft, d);
+      float rim  = exp(-abs(d)*mix(11.,2.4,uSoft)) * (1.-fill*.12);
+      float glow = exp(-max(d,0.)*mix(5.5,2.2,uSoft));
+      // irisation nacrée sur le bord (film mince)
+      float ang = atan(c.y,c.x);
+      vec3 iri = .5 + .5*cos(6.2832*(vec3(0.,.33,.67) + ang*.5 + uSpin*.14 + uSeed + d*1.4));
+      vec3 pearl = mix(vec3(.9,.95,1.), iri, .62);
+      vec3 body  = mix(mix(vec3(1.), uTint*1.5+.14, .45), pearl, .45);  // givre irisé lumineux
+      // scintillement : petite étoile 4 branches au centre
+      vec2 a2 = abs(c);
+      float star = (smoothstep(.55,0.,a2.y)*smoothstep(1.2,0.,a2.x)
+                  + smoothstep(.55,0.,a2.x)*smoothstep(1.2,0.,a2.y)) * uTwinkle;
+      vec3 col = pearl*rim*1.2 + body*fill*.6 + pearl*glow*.3*uSoft + vec3(1.,.99,.96)*star*1.4;
+      float a = (rim*.9 + fill*.34 + glow*(.12+.2*uSoft) + star*.75) * uGlow;
+      gl_FragColor = vec4(col, clamp(a, 0., .92));
+    }`;
+  // 3 familles : fond flou rêveur, médians, premier plan net & scintillant
+  const SHARD_DEFS = [
+    { soft:.95, size:3.6, z:-6.5 }, { soft:.88, size:3.0, z:-5.5 }, { soft:.82, size:2.7, z:-6.0 },
+    { soft:.6,  size:2.1, z:-4.2 }, { soft:.55, size:1.9, z:-3.4 }, { soft:.5,  size:1.7, z:-4.8 },
+    { soft:.5,  size:1.6, z:-2.6 }, { soft:.2,  size:1.2, z:-1.0 }, { soft:.15, size:1.0, z: .6 },
+    { soft:.12, size:.9,  z:1.6 },  { soft:.1,  size:.8,  z: .2 }, { soft:.16, size:1.1, z:-.6 },
+    { soft:.13, size:.85, z:2.2 },
+  ];
+  const shards = SHARD_DEFS.map((def,i)=>{
+    const mat = new THREE.ShaderMaterial({
+      transparent:true, depthWrite:false,
+      vertexShader:shardVert, fragmentShader:shardFrag,
+      uniforms:{
+        uSpin:{value:i*1.3}, uSeed:{value:i*2.17}, uGlow:{value:0},
+        uSoft:{value:def.soft}, uTwinkle:{value:0}, uTint:{value:new THREE.Color(0x8ec4f0)},
+      },
+    });
+    const m = new THREE.Mesh(hexGeo, mat);
+    m.scale.setScalar(def.size);
+    m.position.set((((i*.717)%1)*2-1)*14, (((i*.443)%1)*2-1)*8, def.z);
     m.userData = {
-      axis:new THREE.Vector3(Math.sin(i*2.1), Math.cos(i*1.3), Math.sin(i*.7+1)).normalize(),
-      rs:.05+((i*.531)%1)*.1, vy:.06+((i*.83)%1)*.12, ph:i*2.4,
+      spin:i*1.3, spinSpd:(.06+((i*.31)%1)*.14)*(i%2?1:-1),
+      vy:.05+((i*.53)%1)*.11, driftPh:i*1.9, driftAmp:.12+((i*.27)%1)*.16,
+      soft:def.soft, twFreq:.5+((i*.61)%1)*1.1, twPh:i*2.7,
     };
-    shards.push(m); scene.add(m);
-  }
+    scene.add(m);
+    return m;
+  });
 
   // Précipitations (pluie / neige)
   const P = 900;
@@ -1250,15 +1274,19 @@ const gfx = (() => {
       mu.uLdir.value.set(lx/ll, ly/ll);
     }
 
-    // éclats de verre : rotation et dérive lentes
-    shardMat.uniforms.uGlow.value = lerp(shardMat.uniforms.uGlow.value,
-      target.shard*(.7+.3*cur.day), k);
+    // bokeh de verre : face-caméra, spin dans le plan, dérive lente, scintillement
+    const shardGlow = target.shard*(.6+.4*cur.day);
     for (const sh of shards){
-      const u = sh.userData;
-      sh.rotateOnAxis(u.axis, u.rs*dt);
+      const u = sh.userData, mu = sh.material.uniforms;
+      sh.quaternion.copy(cam.quaternion);                    // billboard
+      u.spin += u.spinSpd*dt;
+      mu.uSpin.value = u.spin;
+      mu.uGlow.value = lerp(mu.uGlow.value, shardGlow, k);
+      mu.uTint.value.copy(uniforms.uColMid.value);
+      mu.uTwinkle.value = Math.pow(Math.max(Math.sin(t*u.twFreq + u.twPh),0), 12) * (1-u.soft);
       sh.position.y += u.vy*dt;
-      sh.position.x += Math.sin(t*.3 + u.ph)*.1*dt;
-      if (sh.position.y > 9){ sh.position.y = -9; sh.position.x = (Math.random()*2-1)*13.5; }
+      sh.position.x += Math.sin(t*.3 + u.driftPh)*u.driftAmp*dt;
+      if (sh.position.y > 9.5){ sh.position.y = -9.5; sh.position.x = (Math.random()*2-1)*14; }
     }
 
     // éclairs d'orage
