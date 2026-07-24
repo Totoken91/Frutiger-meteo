@@ -216,6 +216,65 @@ window.METEO_CONFIG = {
     opacity:0; transition:opacity 1s; text-transform:uppercase; color:#ffd98a;
   }
   #demo-badge.on { opacity:.85; }
+
+  /* ═══════════════ PORTRAIT (téléphone debout) ═══════════════ */
+  body.portrait #stage { width:1080px; height:1920px; }
+
+  /* barre supérieure empilée */
+  body.portrait #topbar { flex-direction:column; align-items:flex-start; height:auto; gap:16px; top:70px; }
+  body.portrait #orb { width:74px; height:74px; }
+  body.portrait #brandname { font-size:42px; }
+  body.portrait #cityline { font-size:26px; }
+  body.portrait #clockbox { text-align:left; }
+  body.portrait #clock { font-size:128px; }
+  body.portrait #date { font-size:32px; margin-top:8px; }
+
+  /* zone des vues : centrée verticalement dans la hauteur portrait */
+  body.portrait #views { top:430px; bottom:180px; }
+  body.portrait .view { display:flex; flex-direction:column; justify-content:center; }
+  body.portrait .eyebrow { font-size:27px; margin-bottom:40px; }
+  body.portrait .eyebrow::after { width:180px; }
+
+  /* Maintenant : empilé et centré */
+  body.portrait #hero { flex-direction:column; height:auto; gap:14px; padding:64px 50px; }
+  body.portrait #hero-icon { width:320px; }
+  body.portrait #hero-main { text-align:center; }
+  body.portrait #hero-temp { font-size:250px; }
+  body.portrait #hero-cond { font-size:58px; margin-top:26px; }
+  body.portrait #hero-sub  { font-size:34px; }
+  body.portrait #hero-chips { justify-content:center; margin-top:48px; }
+  body.portrait .chip { font-size:31px; padding:16px 34px; }
+  body.portrait .chip svg { width:33px; height:33px; }
+
+  /* Détails : 2 colonnes × 3 rangées */
+  body.portrait #tiles { grid-template-columns:repeat(2,1fr); gap:30px; }
+  body.portrait .tile { height:352px; padding:42px 46px; }
+  body.portrait .tile .t-head { font-size:26px; }
+  body.portrait .tile .t-head svg { width:54px; height:54px; }
+  body.portrait .tile .t-value { font-size:100px; }
+  body.portrait .tile .t-sub { font-size:28px; height:34px; }
+
+  /* Horaire & Soleil : SVG à hauteur naturelle (pas de letterbox) */
+  body.portrait #hourly-panel { height:auto; padding:52px 30px 34px; }
+  body.portrait #hourly-svg { height:auto; }
+  body.portrait #sun-panel { height:auto; padding:52px 60px 40px; }
+  body.portrait #sun-svg { flex:none; height:auto; }
+  body.portrait #sun-chips { flex-wrap:wrap; gap:16px; }
+
+  /* Semaine : colonnes resserrées, rangées plus hautes */
+  body.portrait #week-panel { padding:44px 50px; }
+  body.portrait .wrow { grid-template-columns:220px 66px 116px 76px 1fr 76px; gap:12px; height:112px; }
+  body.portrait .w-day { font-size:33px; }
+  body.portrait .w-icon svg { width:70px; height:70px; }
+  body.portrait .w-rain { font-size:25px; }
+  body.portrait .w-min, body.portrait .w-max { font-size:32px; }
+
+  /* barre inférieure */
+  body.portrait #bottombar { bottom:76px; }
+  body.portrait #credit { font-size:23px; width:auto; }
+  body.portrait #demo-badge { font-size:22px; width:auto; }
+  body.portrait #dots .dot { width:16px; height:16px; }
+  body.portrait #dots .dot.on { width:48px; }
 </style>
 </head>
 <body>
@@ -828,7 +887,10 @@ function tickClock(){
   }
 }
 function fitStage(){
-  const s = Math.min(innerWidth/1920, innerHeight/1080);
+  const portrait = innerHeight > innerWidth;
+  document.body.classList.toggle("portrait", portrait);
+  const W = portrait ? 1080 : 1920, H = portrait ? 1920 : 1080;
+  const s = Math.min(innerWidth/W, innerHeight/H);
   $("stage").style.setProperty("--s", s.toFixed(4));
 }
 
@@ -1274,12 +1336,15 @@ const gfx = (() => {
     metaU.uWarm.value = uniforms.uWarm.value;
     metaU.uDay.value = cur.day;
     metaU.uSkyCol.value.copy(uniforms.uColMid.value);
+    // en portrait l'écran étroit fait fusionner les blobs → on les réduit
+    const portrait = innerHeight > innerWidth;
+    const rS = portrait ? .68 : 1, aS = portrait ? .65 : 1;
     for (let i=0;i<BLOBS.length;i++){
       const b = BLOBS[i];
       metaU.uBlobs.value[i].set(
         b.x + Math.sin(t*b.sx + b.px)*b.ax,
-        b.y + Math.sin(t*b.sy + b.py)*b.ay,
-        b.r);
+        b.y + Math.sin(t*b.sy + b.py)*b.ay*aS,
+        b.r*rS);
     }
 
     // éclairs d'orage
