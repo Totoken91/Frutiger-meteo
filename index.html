@@ -275,6 +275,95 @@ window.METEO_CONFIG = {
   body.portrait #demo-badge { font-size:22px; width:auto; }
   body.portrait #dots .dot { width:16px; height:16px; }
   body.portrait #dots .dot.on { width:48px; }
+
+  /* ═══════════════ PRÉSENTATEUR MÉTÉO ════════════════════════ */
+  #presenter {
+    position:absolute; left:0; top:0; width:0; height:0; z-index:6;
+    transform:translate(var(--px,960px), var(--py,280px));
+    transition:transform 1.9s cubic-bezier(.22,1,.36,1);
+    will-change:transform;
+  }
+  #mascot-wrap { position:absolute; left:0; top:0; transform:translate(-50%,-50%); }
+  #mascot-wrap::before {                       /* halo doux derrière la mascotte */
+    content:""; position:absolute; left:50%; top:50%; width:210px; height:210px;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(circle, rgba(255,246,196,.34), rgba(255,240,170,0) 66%);
+    pointer-events:none;
+  }
+  #mascot {
+    display:block; width:150px; height:150px; position:relative; transform-origin:center;
+    filter:drop-shadow(0 16px 20px rgba(6,26,70,.4)) drop-shadow(0 2px 4px rgba(6,26,70,.3));
+    animation:bob 5.5s ease-in-out infinite;
+  }
+  @keyframes bob {
+    0%   { transform:translateY(-7px) rotate(-3.2deg); }
+    50%  { transform:translateY(7px)  rotate(3.2deg); }
+    100% { transform:translateY(-7px) rotate(-3.2deg); }
+  }
+  /* gags goofy joués ponctuellement (la classe l'emporte sur bob) */
+  #mascot.g-hop    { animation:hop 1.1s cubic-bezier(.3,1.5,.5,1) 1 both; }
+  #mascot.g-dance  { animation:dance .6s ease-in-out 3 both; }
+  #mascot.g-roll   { animation:roll 1.7s cubic-bezier(.55,0,.45,1) 1 both; }
+  #mascot.g-wobble { animation:wobble 1s ease-in-out 1 both; }
+  #mascot.g-spin   { animation:spinjump 1.35s cubic-bezier(.3,.9,.4,1) 1 both; }
+  @keyframes hop {
+    0%,100% { transform:translateY(0) scale(1,1); }
+    14% { transform:translateY(0) scale(1.18,.82); }
+    40% { transform:translateY(-72px) scale(.9,1.14); }
+    58% { transform:translateY(0) scale(1.16,.85); }
+    78% { transform:translateY(-22px) scale(.98,1.04); }
+  }
+  @keyframes dance {
+    0%,100% { transform:rotate(-13deg) translateX(-9px); }
+    25% { transform:rotate(12deg) translateX(9px) translateY(-7px); }
+    50% { transform:rotate(-12deg) translateX(-9px); }
+    75% { transform:rotate(13deg) translateX(9px) translateY(-7px); }
+  }
+  @keyframes roll {
+    0%   { transform:rotate(0deg) translateY(0); }
+    50%  { transform:rotate(180deg) translateY(-34px); }
+    100% { transform:rotate(360deg) translateY(0); }
+  }
+  @keyframes wobble {
+    0%,100% { transform:scale(1,1); }
+    20% { transform:scale(1.22,.8); }  40% { transform:scale(.84,1.16); }
+    60% { transform:scale(1.1,.9); }   80% { transform:scale(.96,1.05); }
+  }
+  @keyframes spinjump {
+    0%   { transform:translateY(0) rotate(0) scale(1); }
+    32%  { transform:translateY(-84px) rotate(200deg) scale(1.05); }
+    56%  { transform:translateY(-92px) rotate(360deg) scale(1); }
+    100% { transform:translateY(0) rotate(360deg) scale(1); }
+  }
+  #bubble {
+    position:absolute; width:max-content; max-width:460px; padding:20px 30px; border-radius:28px;
+    background:rgba(255,255,255,.19);
+    -webkit-backdrop-filter:blur(24px) saturate(1.5); backdrop-filter:blur(24px) saturate(1.5);
+    border:1px solid rgba(255,255,255,.44);
+    box-shadow:0 16px 44px rgba(15,45,110,.3), inset 0 1px 0 rgba(255,255,255,.45);
+    font-size:30px; font-weight:400; line-height:1.3; color:#fff; letter-spacing:.005em;
+    text-shadow:0 1px 2px rgba(6,26,70,.45); text-wrap:balance; pointer-events:none;
+    opacity:0; transform:scale(.85) translateY(12px); transform-origin:bottom center;
+    transition:opacity .5s ease, transform .6s cubic-bezier(.16,1,.3,1);
+  }
+  #bubble::after {                             /* queue vers la mascotte */
+    content:""; position:absolute; width:24px; height:24px; bottom:-10px;
+    background:rgba(255,255,255,.17);
+    border-right:1px solid rgba(255,255,255,.42); border-bottom:1px solid rgba(255,255,255,.42);
+    transform:rotate(45deg); border-radius:0 0 6px 0;
+  }
+  #presenter.talk #bubble { opacity:1; transform:none; }
+  /* côté d'ouverture (vers le centre de l'écran) */
+  #presenter.side-right #bubble { left:66px; bottom:98px; }
+  #presenter.side-right #bubble::after { left:40px; }
+  #presenter.side-left  #bubble { right:66px; bottom:98px; }
+  #presenter.side-left  #bubble::after { right:40px; }
+
+  body.portrait #mascot { width:190px; height:190px; }
+  body.portrait #mascot-wrap::before { width:260px; height:260px; }
+  body.portrait #bubble { font-size:36px; max-width:560px; padding:24px 34px; }
+  body.portrait #presenter.side-right #bubble,
+  body.portrait #presenter.side-left  #bubble { bottom:120px; }
 </style>
 </head>
 <body>
@@ -308,6 +397,12 @@ window.METEO_CONFIG = {
     <div id="credit">Données Open-Meteo</div>
     <div id="dots"></div>
     <div id="demo-badge">Mode démo</div>
+  </div>
+
+  <!-- Présentateur météo qui flotte et commente en bulle -->
+  <div id="presenter">
+    <div id="bubble"><span id="bubble-txt"></span></div>
+    <div id="mascot-wrap"><img id="mascot" src="assets/presenter.png" alt=""></div>
   </div>
 </div>
 
@@ -854,7 +949,149 @@ function showView(n, first){
   if (state.model) RENDER[n]();          // re-rendu juste avant l'entrée → données fraîches
   $(VIEWS[n]).classList.add("active");
   VIEWS.forEach((_,i)=>$("dot"+i).classList.toggle("on", i===n));
+  presenter.present(n);                   // la mascotte se déplace et commente
 }
+/* ═══════════════ PRÉSENTATEUR MÉTÉO (deadpan, goofy) ══════════════ */
+// Répliques pince-sans-rire, jamais deux fois la même d'affilée.
+const CRAZY = [
+  "Un pigeon me fixe depuis 20 minutes. Je crois qu'il sait.",
+  "Techniquement, je n'existe que quand tu regardes ailleurs.",
+  "Ma bouche est fermée depuis 2007. Aucun regret.",
+  "Je suis payé en lumière du jour. Le change est mauvais.",
+  "J'ai compté les nuages. Il en manque un. Enquête en cours.",
+  "Le soleil et moi, on se parle plus depuis l'incident.",
+  "Un jour je toucherai le sol. Ce n'est pas ce jour.",
+  "Rien à signaler. À part ce léger vertige permanent.",
+  "Statistiquement, il fait toujours un temps quelque part.",
+  "Je pense à la pluie de mardi. Elle, elle avait du style.",
+  "On m'a dit de sourire. J'ai une fermeture éclair. On fait avec.",
+  "Je flotte. Ni un talent, ni un choix. Juste un fait établi.",
+  "Un hélico est passé tout à l'heure. On s'est pas salués. Froid.",
+  "Le vent m'a confié un truc. Je peux pas répéter. Désolé.",
+  "Je connais la météo de demain. Je la garde pour moi.",
+  "Ça fait 4 heures que je flotte. Toujours pas de chaise.",
+  "J'ai un plan sur cinq ans. Étape une : continuer à flotter.",
+  "Parfois je tourne sur moi-même. Personne ne m'arrête. Personne.",
+];
+let lastLine = "";
+function pickLine(arr){
+  let s, n = 0;
+  do { s = arr[Math.floor(Math.random()*arr.length)]; } while (s === lastLine && ++n < 6);
+  return (lastLine = s);
+}
+function weatherLines(view){
+  if (!state.model) return ["Je capte rien. Le ciel me fait la tête."];
+  const c = state.model.current, d = state.model.daily;
+  const t = Math.round(c.temp);
+  const cd = wmoInfo(c.code)[0]; const condMin = cd.charAt(0).toLowerCase()+cd.slice(1);
+  switch(view){
+    case 0: return [
+      `${t}° à ${CFG.ville}. Palpitant.`,
+      `${t}°, ${condMin}. Comme prévu. Enfin, comme on m'a dit.`,
+      `${t}°. Je dis ça, je dis rien. J'ai pas de bouche.`,
+      `${cd}. Voilà. C'était la météo. Applaudissez en silence.`,
+    ];
+    case 1: return [
+      `${Math.round(c.humidity)} % d'humidité. Mon taux d'existentialisme est plus haut.`,
+      `Vent de ${windDir(c.windD)}, ${Math.round(c.wind)} km/h. Il pousse, je résiste. Duel éternel.`,
+      `${Math.round(c.humidity)} % d'humidité. C'est mouillé. Scientifiquement.`,
+      `${Math.round(c.pressure)} hPa. Aucune idée de ce que ça veut dire. On y croit.`,
+    ];
+    case 2: {
+      const hs = state.model.hourly.slice(0,12);
+      const mx = hs.length ? Math.round(Math.max(...hs.map(h=>h.temp))) : t;
+      return [
+        `Ça montera à ${mx}°. Vers 15h. Notez-le. Ou pas.`,
+        `${mx}° cet après-midi. J'y serai. Je suis toujours là.`,
+        `Prévisions à l'heure. Fiables. Sauf surprise. Il y a toujours une surprise.`,
+      ];
+    }
+    case 3: {
+      const wk = d.slice(0,7);
+      const wmin = Math.round(Math.min(...wk.map(x=>x.tmin)));
+      const wmax = Math.round(Math.max(...wk.map(x=>x.tmax)));
+      return [
+        `De ${wmin}° à ${wmax}° cette semaine. Un vrai roman.`,
+        `${wmax}° max cette semaine. On fera avec.`,
+        `Sept jours de météo. Sept. J'ai vérifié.`,
+      ];
+    }
+    case 4: {
+      const now = new Date();
+      const dawn = state.sunrise && now < state.sunrise;
+      return dawn ? [
+        `Lever à ${fmtH.format(state.sunrise)}. J'étais déjà debout. Je dors jamais.`,
+        `Le soleil se lève à ${fmtH.format(state.sunrise)}. Moi je me lève pas, je flotte.`,
+      ] : [
+        `Coucher à ${fmtH.format(state.sunset)}. Le seul moment où on me lâche la grappe.`,
+        `Coucher du soleil à ${fmtH.format(state.sunset)}. Dramatique. J'adore le drame.`,
+      ];
+    }
+  }
+  return [""];
+}
+function presenterLine(view){
+  return Math.random() < .35 ? pickLine(CRAZY) : pickLine(weatherLines(view));
+}
+
+const presenter = (() => {
+  // une ancre par vue (% du stage), placée pour ne pas masquer l'info clé
+  const ANCHORS = [
+    { x:.17, y:.30, side:"right" },  // 0 Maintenant — haut-gauche, dégage la temp
+    { x:.85, y:.84, side:"left"  },  // 1 Détails — bas-droite, sous les tuiles
+    { x:.84, y:.32, side:"left"  },  // 2 Horaire — haut-droite (zone vide)
+    { x:.16, y:.84, side:"right" },  // 3 Semaine — bas-gauche
+    { x:.84, y:.34, side:"left"  },  // 4 Soleil — haut-droite (zone vide)
+  ];
+  // portrait : la barre sup est empilée à gauche → on privilégie côté droit
+  // haut et coins bas, loin de l'horloge et de la temp centrée
+  const ANCHORS_P = [
+    { x:.74, y:.33, side:"left"  },  // 0 Maintenant — droite, sous l'horloge
+    { x:.78, y:.90, side:"left"  },  // 1 Détails — bas-droite
+    { x:.22, y:.90, side:"right" },  // 2 Horaire — bas-gauche
+    { x:.78, y:.90, side:"left"  },  // 3 Semaine — bas-droite
+    { x:.22, y:.90, side:"right" },  // 4 Soleil — bas-gauche
+  ];
+  const el = $("presenter"), txt = $("bubble-txt"), mascot = $("mascot");
+  const DUR = { hop:1100, dance:1800, roll:1700, wobble:1000, spin:1350 };
+  const IDLE = ["hop","dance","wobble","spin"];
+  let tShow = 0, tGoofy = 0, tIdle = 0, busy = false;
+
+  function playGoofy(name){                              // gag ponctuel, sans empiler
+    if (busy) return;
+    busy = true;
+    mascot.classList.add("g-"+name);
+    clearTimeout(tGoofy);
+    tGoofy = setTimeout(()=>{ mascot.classList.remove("g-"+name); busy = false; }, DUR[name]+80);
+  }
+  function scheduleIdle(){                               // gag aléatoire toutes les 7-14 s
+    clearTimeout(tIdle);
+    tIdle = setTimeout(()=>{
+      playGoofy(IDLE[Math.floor(Math.random()*IDLE.length)]);
+      scheduleIdle();
+    }, 7000 + Math.random()*7000);
+  }
+  function present(view){
+    clearTimeout(tShow);
+    el.classList.remove("talk");                        // masque la bulle pendant le trajet
+    const portrait = innerHeight > innerWidth;
+    const set = portrait ? ANCHORS_P : ANCHORS;
+    const a = set[((view % set.length) + set.length) % set.length];
+    const W = portrait ? 1080 : 1920, H = portrait ? 1920 : 1080;
+    el.style.setProperty("--px", Math.round(a.x*W) + "px");
+    el.style.setProperty("--py", Math.round(a.y*H) + "px");
+    el.classList.toggle("side-left",  a.side==="left");
+    el.classList.toggle("side-right", a.side==="right");
+    if (Math.random() < .35) playGoofy("roll");         // ~1 fois sur 3 : roulade vers le coin
+    scheduleIdle();                                     // repousse le prochain gag
+    tShow = setTimeout(()=>{                            // texte + bulle à l'arrivée
+      txt.textContent = presenterLine(view);
+      el.classList.add("talk");
+    }, 1050);
+  }
+  return { present };
+})();
+
 function startRotation(){
   if (Q.has("vue")){ showView(clamp(+Q.get("vue"),0,VIEWS.length-1), true); return; }
   showView(0, true);
